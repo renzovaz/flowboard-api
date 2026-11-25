@@ -1,0 +1,31 @@
+<Project>
+  <!--
+    Configurações comuns a TODOS os projetos da solução (API e testes).
+    Centralizar aqui garante que qualidade e segurança valham igualmente em todo o código.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- O compilador avisa sobre possíveis valores nulos não tratados -->
+    <Nullable>enable</Nullable>
+
+    <!-- .NET Analyzers: conjunto recomendado de regras de qualidade e segurança -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Aviso vira erro: a qualidade não depende de alguém ler os avisos -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- NuGet Audit: audita dependências diretas e transitivas.
+         Vulnerabilidade baixa (NU1901) = aviso; moderada/alta/crítica (NU1902-NU1904) = erro. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901</WarningsNotAsErrors>
+
+    <!-- Builds reproduzíveis: gera packages.lock.json (versionado no Git) -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+</Project>
