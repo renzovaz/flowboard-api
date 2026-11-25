@@ -1,0 +1,9 @@
+# Normaliza finais de linha (WSL/Windows) e garante LF em scripts e YAML
+* text=auto eol=lf
+*.sh text eol=lf
+*.cs text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
