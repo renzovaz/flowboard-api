@@ -4,6 +4,20 @@ Todas as mudanças relevantes do FlowBoard API. Formato baseado em [Keep a Chang
 
 Cada versão publicada gera uma imagem no GHCR identificada por **versão, commit e digest** (veja o GitHub Release correspondente). O deploy e o rollback usam sempre o **digest**.
 
+## [1.1.0] - 2026-11-25
+
+Evolução operacional (observabilidade). Sem migrations: o rollback para a 1.0.0 não exige nenhuma ação no banco.
+
+### Adicionado
+- Endpoint `GET /metrics` no formato Prometheus (prometheus-net):
+  - métricas HTTP por rota (requisições, status e latência);
+  - `flowboard_story_moves_total{from,to}`, `flowboard_wip_rejections_total{team}`, `flowboard_stories_completed_total{team}`;
+  - `flowboard_story_cycle_time_seconds` (Flow Time) e `flowboard_wip_current{team,column}` (Flow Load), calculado no momento da coleta.
+
+### Corrigido
+- A API aguarda o PostgreSQL ficar disponível (até ~60 s) antes de aplicar as migrations na inicialização, em vez de encerrar o processo (#28).
+- Smoke test do CI aguarda o banco e exibe os logs da API em caso de falha.
+
 ## [1.0.0] - 2026-11-25
 
 MVP completo.
