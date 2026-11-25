@@ -30,6 +30,13 @@ dotnet_naming_symbols.private_static_readonly_fields.applicable_kinds = field
 dotnet_naming_symbols.private_static_readonly_fields.applicable_accessibilities = private
 dotnet_naming_symbols.private_static_readonly_fields.required_modifiers = static, readonly
 dotnet_naming_style.pascal_case.capitalization = pascal_case
+# Constantes privadas também em PascalCase
+dotnet_naming_rule.private_constants_pascal.symbols = private_constants
+dotnet_naming_rule.private_constants_pascal.style = pascal_case
+dotnet_naming_rule.private_constants_pascal.severity = warning
+dotnet_naming_symbols.private_constants.applicable_kinds = field
+dotnet_naming_symbols.private_constants.applicable_accessibilities = private
+dotnet_naming_symbols.private_constants.required_modifiers = const
 # Demais campos privados em _camelCase
 dotnet_naming_rule.private_fields_underscore.symbols = private_fields
 dotnet_naming_rule.private_fields_underscore.style = underscore_camel
@@ -48,3 +55,7 @@ csharp_style_expression_bodied_methods = when_on_single_line:silent
 dotnet_diagnostic.CA1707.severity = none
 # Testes não são bibliotecas públicas: ConfigureAwait desnecessário
 dotnet_diagnostic.CA2007.severity = none
+
+# Migrations são geradas pelo EF Core: tratadas como código gerado (fora dos analyzers)
+[src/FlowBoard.Api/Data/Migrations/**.cs]
+generated_code = true

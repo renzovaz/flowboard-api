@@ -48,6 +48,12 @@ public class Story
     public DateTime? CompletedAt { get; private set; }
 
     /// <summary>
+    /// Versão da linha (coluna de sistema xmin do PostgreSQL): concorrência otimista (ADR-002).
+    /// Se duas requisições alterarem a mesma Story ao mesmo tempo, a segunda recebe HTTP 409.
+    /// </summary>
+    public uint Version { get; private set; }
+
+    /// <summary>
     /// Atualiza os dados de planejamento, aplicando R4, R6, RC1 e RC2.
     /// </summary>
     public void UpdatePlanning(ProgramIncrement programIncrement, string title, string? acceptanceCriteria,
