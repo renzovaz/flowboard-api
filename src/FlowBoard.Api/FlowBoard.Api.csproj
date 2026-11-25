@@ -4,11 +4,14 @@
     <!-- Versão padrão; no pipeline de release é sobrescrita com -p:Version=X.Y.Z -->
     <Version>0.0.0-dev</Version>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Versão exibida no /health sem o sufixo "+commit" (o commit vai nas labels da imagem) -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

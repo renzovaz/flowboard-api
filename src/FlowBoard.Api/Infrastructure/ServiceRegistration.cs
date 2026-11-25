@@ -1,18 +1,20 @@
 using System.Text.Json.Serialization;
 using FlowBoard.Api.Infrastructure.Database;
 using FlowBoard.Api.Infrastructure.ErrorHandling;
+using FlowBoard.Api.Infrastructure.HealthChecks;
 using FlowBoard.Api.Services;
 
 namespace FlowBoard.Api.Infrastructure;
 
 /// <summary>Registro de dependências (injeção de dependência nativa do ASP.NET Core).</summary>
-public static class ServiceRegistration
+public static partial class ServiceRegistration
 {
     public static IServiceCollection AddFlowBoard(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
         services.AddFlowBoardDatabase();
         services.AddFlowBoardProblemDetails();
+        services.AddFlowBoardHealthChecks();
 
         services.AddScoped<TeamService>();
         services.AddScoped<ProgramIncrementService>();
@@ -38,6 +40,11 @@ public static class ServiceRegistration
             return;
         }
 
+        if (app.Environment.IsProduction())
+        {
+            LogSwaggerInProduction(app.Logger);
+        }
+
         app.MapOpenApi();
         app.UseSwaggerUI(options =>
         {
@@ -45,4 +52,8 @@ public static class ServiceRegistration
             options.DocumentTitle = "FlowBoard API";
         });
     }
+
+    [LoggerMessage(EventId = 3001, Level = LogLevel.Warning,
+        Message = "SwaggerEnabledInProduction: documentação interativa habilitada em Production (uso restrito à demonstração)")]
+    private static partial void LogSwaggerInProduction(ILogger logger);
 }

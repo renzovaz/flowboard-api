@@ -17,7 +17,7 @@ public sealed partial class GlobalExceptionHandler(
         var problem = exception switch
         {
             DomainException domain => FromDomain(domain),
-            _ => Unexpected(exception),
+            _ => FromInfrastructure(httpContext, exception),
         };
 
         httpContext.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
@@ -31,14 +31,7 @@ public sealed partial class GlobalExceptionHandler(
 
     private static ProblemDetails FromDomain(DomainException exception)
     {
-        var problem = new ProblemDetails
-        {
-            Status = exception.StatusCode,
-            Title = exception.Title,
-            Detail = exception.Message,
-            Type = ErrorDocs.TypeFor(exception.ErrorCode),
-        };
-        problem.Extensions["errorCode"] = exception.ErrorCode;
+        var problem = Create(exception.StatusCode, exception.ErrorCode, exception.Title, exception.Message);
         foreach (var (key, value) in exception.Extensions)
         {
             problem.Extensions[key] = value;
@@ -47,20 +40,60 @@ public sealed partial class GlobalExceptionHandler(
         return problem;
     }
 
-    private ProblemDetails Unexpected(Exception exception)
+    /// <summary>Falhas que não são regras de negócio: banco de dados (ADR-017) ou erro inesperado.</summary>
+    private ProblemDetails FromInfrastructure(HttpContext httpContext, Exception exception)
     {
-        // Detalhes completos SOMENTE no log; a resposta nunca expõe stack trace ou mensagem interna.
-        LogUnhandled(logger, exception);
+        switch (DatabaseExceptionClassifier.Classify(exception))
+        {
+            case DatabaseFailure.Unavailable:
+                LogDatabaseUnavailable(logger, exception.GetType().Name, exception.Message);
+                httpContext.Response.Headers.RetryAfter = "5";
+                return Create(StatusCodes.Status503ServiceUnavailable, ErrorCodes.DatabaseUnavailable,
+                    "Banco de dados indisponível",
+                    "O banco de dados não está respondendo. Tente novamente em alguns segundos.");
+
+            case DatabaseFailure.UniqueViolation:
+                return Create(StatusCodes.Status409Conflict, ErrorCodes.DuplicateName,
+                    "Nome já utilizado", "Já existe um registro com este nome.");
+
+            case DatabaseFailure.ConcurrencyConflict:
+                return Create(StatusCodes.Status409Conflict, ErrorCodes.ConcurrencyConflict,
+                    "Conflito de concorrência", "O registro foi alterado por outra requisição. Tente novamente.");
+
+            case DatabaseFailure.IntegrityViolation:
+                // O domínio deveria ter barrado antes: é um erro de programação, não do cliente.
+                LogIntegrityViolation(logger, exception);
+                return InternalError();
+
+            default:
+                // Detalhes completos SOMENTE no log; a resposta nunca expõe stack trace ou mensagem interna.
+                LogUnhandled(logger, exception);
+                return InternalError();
+        }
+    }
+
+    private static ProblemDetails InternalError() =>
+        Create(StatusCodes.Status500InternalServerError, ErrorCodes.InternalError,
+            "Erro interno", "Ocorreu um erro inesperado. Informe o traceId ao suporte.");
+
+    private static ProblemDetails Create(int status, string errorCode, string title, string detail)
+    {
         var problem = new ProblemDetails
         {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Erro interno",
-            Detail = "Ocorreu um erro inesperado. Informe o traceId ao suporte.",
-            Type = ErrorDocs.TypeFor(ErrorCodes.InternalError),
+            Status = status,
+            Title = title,
+            Detail = detail,
+            Type = ErrorDocs.TypeFor(errorCode),
         };
-        problem.Extensions["errorCode"] = ErrorCodes.InternalError;
+        problem.Extensions["errorCode"] = errorCode;
         return problem;
     }
+
+    [LoggerMessage(EventId = 2001, Level = LogLevel.Error, Message = "DatabaseUnavailable {ExceptionType}: {Reason}")]
+    private static partial void LogDatabaseUnavailable(ILogger logger, string exceptionType, string reason);
+
+    [LoggerMessage(EventId = 2002, Level = LogLevel.Error, Message = "IntegrityViolationNotCaughtByDomain")]
+    private static partial void LogIntegrityViolation(ILogger logger, Exception exception);
 
     [LoggerMessage(EventId = 2003, Level = LogLevel.Error, Message = "UnhandledException")]
     private static partial void LogUnhandled(ILogger logger, Exception exception);
