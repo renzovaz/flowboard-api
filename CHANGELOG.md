@@ -14,6 +14,10 @@ Evolução operacional (observabilidade). Sem migrations: o rollback para a 1.0.
   - `flowboard_story_moves_total{from,to}`, `flowboard_wip_rejections_total{team}`, `flowboard_stories_completed_total{team}`;
   - `flowboard_story_cycle_time_seconds` (Flow Time) e `flowboard_wip_current{team,column}` (Flow Load), calculado no momento da coleta.
 
+### Corrigido
+- A API aguarda o PostgreSQL ficar disponível (até ~60 s) antes de aplicar as migrations na inicialização, em vez de encerrar o processo (#28).
+- Smoke test do CI aguarda o banco e exibe os logs da API em caso de falha.
+
 ## [1.0.0] - 2026-11-25
 
 MVP completo.
