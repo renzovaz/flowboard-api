@@ -10,6 +10,14 @@ updates:
     labels: ["type:chore"]
     commit-message:
       prefix: "build(deps)"
+    # Projeto fixado no .NET 10 LTS (ADR-003): sem saltos de versão major dos pacotes da plataforma.
+    ignore:
+      - dependency-name: "Microsoft.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Npgsql*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Swashbuckle.*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -26,3 +34,7 @@ updates:
     labels: ["type:security"]
     commit-message:
       prefix: "build(docker)"
+    # Mantém o .NET 10 LTS (ADR-003): atualiza digest/patch, mas não para o .NET 11.
+    ignore:
+      - dependency-name: "dotnet/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
