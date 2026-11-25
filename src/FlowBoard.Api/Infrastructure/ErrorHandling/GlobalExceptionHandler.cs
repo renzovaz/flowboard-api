@@ -46,7 +46,8 @@ public sealed partial class GlobalExceptionHandler(
         switch (DatabaseExceptionClassifier.Classify(exception))
         {
             case DatabaseFailure.Unavailable:
-                LogDatabaseUnavailable(logger, exception.GetType().Name, exception.Message);
+                var cause = exception.GetBaseException(); // causa raiz (ex.: SocketException), não o "embrulho" do EF
+                LogDatabaseUnavailable(logger, cause.GetType().Name, cause.Message);
                 httpContext.Response.Headers.RetryAfter = "5";
                 return Create(StatusCodes.Status503ServiceUnavailable, ErrorCodes.DatabaseUnavailable,
                     "Banco de dados indisponível",

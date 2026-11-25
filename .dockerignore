@@ -1,0 +1,18 @@
+# Somente o necessário entra no contexto de build: nada de segredos, histórico Git ou testes.
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.github/
+.vs/
+.vscode/
+.idea/
+tests/
+docs/
+deploy/
+scripts/
+*.md
+.env
+.env.*
+**/*.user
+**/appsettings.*.local.json

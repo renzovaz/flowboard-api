@@ -1,0 +1,43 @@
+# Ambiente de DESENVOLVIMENTO: compila a imagem a partir do código local.
+# Para implantar a imagem publicada no GHCR, use deploy/compose.yaml.
+#
+#   cp .env.example .env    # e defina POSTGRES_PASSWORD
+#   docker compose up -d --build
+name: flowboard-dev
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: flowboard
+      POSTGRES_USER: flowboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env (veja .env.example)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432" # acessível somente pela própria máquina (cliente SQL)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowboard -d flowboard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      args:
+        VERSION: 0.0.0-dev
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=flowboard;Username=flowboard;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}"
+      Database__ApplyMigrationsOnStartup: "true"
+      Swagger__Enabled: "true"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+    name: flowboard-dev-pgdata
