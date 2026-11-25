@@ -21,7 +21,7 @@ public static class WipPolicy
         }
 
         // Comparação inclusiva: com limite 3 e 3 Stories na coluna, a 4ª é recusada.
-        if (currentCount >= limit.Value)
+        if (currentCount > limit.Value)
         {
             throw new ConflictException(
                 ErrorCodes.WipLimitExceeded,
