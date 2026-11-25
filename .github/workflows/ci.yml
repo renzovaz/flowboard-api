@@ -1,0 +1,88 @@
+# Pipeline de Integração Contínua do FlowBoard API.
+# Executa em PRs, pushes na main, semanalmente (novas CVEs) e manualmente.
+# Também é reutilizado pelo release.yml via workflow_call (sem duplicar etapas).
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1" # segunda-feira, 06:00 UTC
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      is-release:
+        description: "true quando chamado pelo release.yml"
+        type: boolean
+        default: false
+
+# Menor privilégio: o CI só lê o código.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  CONFIGURATION: Release
+
+jobs:
+  build-test:
+    name: build-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET (versão do global.json)
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore (locked mode + NuGet Audit)
+        run: dotnet restore FlowBoard.slnx --locked-mode
+
+      - name: Verificar formatação (.editorconfig)
+        run: dotnet format FlowBoard.slnx --verify-no-changes --no-restore
+
+      - name: Build (analyzers, avisos = erro)
+        run: dotnet build FlowBoard.slnx -c "$CONFIGURATION" --no-restore
+
+      - name: Testes unitários
+        run: >
+          dotnet test tests/FlowBoard.UnitTests -c "$CONFIGURATION" --no-build
+          --logger GitHubActions --logger "trx;LogFileName=unit.trx"
+          --results-directory TestResults
+
+      - name: Testes de integração
+        run: >
+          dotnet test tests/FlowBoard.IntegrationTests -c "$CONFIGURATION" --no-build
+          --logger GitHubActions --logger "trx;LogFileName=integration.trx"
+          --results-directory TestResults
+
+      - name: Upload dos resultados de teste
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: TestResults/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Publish
+        run: dotnet publish src/FlowBoard.Api -c "$CONFIGURATION" --no-build -o publish
+
+      - name: Upload do artefato (binários publicados)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flowboard-api-${{ github.sha }}
+          path: publish/
+          retention-days: 30
