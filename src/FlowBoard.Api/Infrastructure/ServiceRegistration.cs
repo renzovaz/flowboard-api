@@ -17,6 +17,7 @@ public static class ServiceRegistration
         services.AddScoped<TeamService>();
         services.AddScoped<ProgramIncrementService>();
         services.AddScoped<FeatureService>();
+        services.AddScoped<StoryService>();
 
         services.AddControllers()
             // Enums como texto no JSON ("InProgress" em vez de 2).
