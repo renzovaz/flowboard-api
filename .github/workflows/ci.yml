@@ -67,11 +67,13 @@ jobs:
           "/p:Include=[FlowBoard.Api]FlowBoard.Api.Domain.*"
           /p:Threshold=80 /p:ThresholdType=line
 
-      - name: Testes de integração
+      # API real + PostgreSQL 17 real (Testcontainers usa o Docker do runner).
+      - name: Testes de integração (Testcontainers)
         run: >
           dotnet test tests/FlowBoard.IntegrationTests -c "$CONFIGURATION" --no-build
           --logger GitHubActions --logger "trx;LogFileName=integration.trx"
           --results-directory TestResults
+          --collect "XPlat Code Coverage"
 
       - name: Relatório de cobertura no resumo da execução
         if: always()
