@@ -56,7 +56,7 @@ A7=$(story "$NOTIF" "$ALPHA" 1 2 "Link de descadastro");          move "$A7" Rea
 
 echo "→ Stories da equipe Beta"
 B1=$(story "$REPORT" "$BETA" 5 1 "Gerar PDF do quadro");          move "$B1" Ready InProgress
-B2=$(story "$REPORT" "$BETA" 8 2 "Agendar envio de relatório")
+story "$REPORT" "$BETA" 8 2 "Agendar envio de relatório" >/dev/null
 api POST "/api/features/$LOGIN/stories" '{"title":"Login com Microsoft (a estimar)"}' >/dev/null
 
 cat <<MSG

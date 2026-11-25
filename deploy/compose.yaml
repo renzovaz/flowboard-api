@@ -1,0 +1,55 @@
+# Ambiente de IMPLANTAÇÃO: usa a imagem publicada no GHCR — nada é compilado aqui.
+# A imagem é referenciada pelo DIGEST (imutável), definido pelos scripts de deploy/rollback
+# em deploy/state/image.env. Uso normal: ./scripts/deploy.sh <versão>  (veja docs/deployment.md)
+name: flowboard
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: flowboard
+      POSTGRES_USER: flowboard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD em deploy/.env (veja deploy/.env.example)}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Sem "ports": o banco só é acessível pela rede interna do Compose.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowboard -d flowboard"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging: *default-logging
+
+  api:
+    image: ${IMAGE_REF:?Defina IMAGE_REF (use ./scripts/deploy.sh <versão>)}
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=flowboard;Username=flowboard;Password=${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}"
+      Database__ApplyMigrationsOnStartup: "true"
+      # Desligado por padrão em Production (ADR-018); habilite explicitamente para a demonstração.
+      Swagger__Enabled: ${SWAGGER_ENABLED:-false}
+    ports:
+      - "127.0.0.1:${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Endurecimento do contêiner
+    read_only: true                 # sistema de arquivos somente leitura
+    tmpfs:
+      - /tmp                        # única área gravável
+    cap_drop: [ALL]                 # sem capacidades do kernel
+    security_opt:
+      - no-new-privileges:true      # impede escalonamento de privilégios
+    restart: unless-stopped
+    logging: *default-logging
+
+volumes:
+  pgdata:
+    name: flowboard_pgdata
