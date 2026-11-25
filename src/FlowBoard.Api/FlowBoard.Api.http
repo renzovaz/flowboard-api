@@ -1,0 +1,71 @@
+### Requisições de exemplo do FlowBoard API
+### Use com a extensão "REST Client" (VS Code) ou com o Visual Studio / Rider.
+### Ordem sugerida: crie equipe, PI, Feature e Stories e depois mova as Stories no quadro.
+
+@baseUrl = http://localhost:8080
+
+### Saúde (com versão)
+GET {{baseUrl}}/health
+
+### E01 — Criar equipe
+POST {{baseUrl}}/api/teams
+Content-Type: application/json
+
+{ "name": "Gamma", "capacityPoints": 20, "wipLimitInProgress": 3, "wipLimitReview": 2 }
+
+### E01 — Faixa inválida (422 INVALID_RANGE)
+POST {{baseUrl}}/api/teams
+Content-Type: application/json
+
+{ "name": "Delta", "capacityPoints": 20, "wipLimitInProgress": 21, "wipLimitReview": 2 }
+
+### E05 — Quadro Kanban da equipe 1
+GET {{baseUrl}}/api/teams/1/board
+
+### E07 — Criar Program Increment (5 iterações de 2 semanas; a 5ª é a IP)
+POST {{baseUrl}}/api/program-increments
+Content-Type: application/json
+
+{ "name": "PI 2027.1", "startDate": "2027-02-01" }
+
+### E11 — Criar Feature (WSJF = (13 + 8 + 2) / 3 = 7,67)
+POST {{baseUrl}}/api/program-increments/1/features
+Content-Type: application/json
+
+{ "title": "Busca avançada", "businessValue": 13, "timeCriticality": 8, "riskReduction": 2, "jobSize": 3 }
+
+### E12 — Backlog ordenado por WSJF
+GET {{baseUrl}}/api/program-increments/1/features
+
+### E15 — Criar Story sem estimativa (fica em Backlog)
+POST {{baseUrl}}/api/features/1/stories
+Content-Type: application/json
+
+{ "title": "Story sem estimativa" }
+
+### E18 — Mover para Ready sem DoR (422 com missingCriteria)
+PATCH {{baseUrl}}/api/stories/1/status
+Content-Type: application/json
+
+{ "status": "Ready" }
+
+### E15 — Story na iteração IP (422 IP_ITERATION_NOT_PLANNABLE)
+POST {{baseUrl}}/api/features/1/stories
+Content-Type: application/json
+
+{ "title": "Na IP", "storyPoints": 3, "teamId": 1, "iteration": 5 }
+
+### E15 — Story com 21 pontos (422 STORY_TOO_LARGE)
+POST {{baseUrl}}/api/features/1/stories
+Content-Type: application/json
+
+{ "title": "Grande demais", "storyPoints": 21 }
+
+### E06 — Carga × capacidade da equipe 1 no PI 1
+GET {{baseUrl}}/api/teams/1/capacity?programIncrementId=1
+
+### E10 — Progresso do PI 1 (R8)
+GET {{baseUrl}}/api/program-increments/1/progress
+
+### Métricas Prometheus (v1.1.0)
+GET {{baseUrl}}/metrics
