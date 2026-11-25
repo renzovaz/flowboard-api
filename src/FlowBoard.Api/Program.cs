@@ -10,9 +10,9 @@ builder.Services.AddFlowBoard();
 
 var app = builder.Build();
 
+app.UseHttpLogging();           // 1º: registra o status FINAL de cada requisição (inclusive erros)
 app.UseExceptionHandler();      // exceções → Problem Details (GlobalExceptionHandler)
 app.UseStatusCodePages();       // 404/405 sem corpo → Problem Details
-app.UseHttpLogging();           // uma linha de log por requisição (método, caminho, status, duração)
 app.UseFlowBoardSwaggerIfEnabled();
 app.MapFlowBoardHealthChecks();
 app.MapControllers();
