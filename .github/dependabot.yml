@@ -1,0 +1,20 @@
+# Atualizações automáticas de dependências. Cada PR do Dependabot passa pelo mesmo CI
+# (inclusive locked mode e NuGet Audit) antes de poder ser integrado.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["type:chore"]
+    commit-message:
+      prefix: "build(deps)"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels: ["type:ci"]
+    commit-message:
+      prefix: "ci(deps)"
