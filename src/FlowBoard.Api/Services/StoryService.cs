@@ -3,6 +3,7 @@ using FlowBoard.Api.Data;
 using FlowBoard.Api.Domain.Entities;
 using FlowBoard.Api.Domain.Exceptions;
 using FlowBoard.Api.Domain.Rules;
+using FlowBoard.Api.Infrastructure.Observability;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlowBoard.Api.Services;
@@ -12,7 +13,8 @@ namespace FlowBoard.Api.Services;
 /// Regras que dependem das OUTRAS Stories da equipe (WIP — R2, capacidade — R5) são verificadas
 /// dentro de uma transação, depois de travar a linha da equipe (SELECT ... FOR UPDATE, ADR-002).
 /// </summary>
-public sealed partial class StoryService(FlowBoardDbContext db, TimeProvider clock, ILogger<StoryService> logger)
+public sealed partial class StoryService(
+    FlowBoardDbContext db, TimeProvider clock, FlowMetrics metrics, ILogger<StoryService> logger)
 {
     public async Task<StoryResponse> CreateAsync(int featureId, StoryRequest request, CancellationToken ct)
     {
@@ -103,6 +105,7 @@ public sealed partial class StoryService(FlowBoardDbContext db, TimeProvider clo
                 catch (ConflictException)
                 {
                     LogWipRejected(logger, story.Id, team.Id, target, occupancy, limit.Value);
+                    metrics.WipRejected(team.Id);
                     throw;
                 }
             }
@@ -113,6 +116,7 @@ public sealed partial class StoryService(FlowBoardDbContext db, TimeProvider clo
         await transaction.CommitAsync(ct);
 
         LogStoryMoved(logger, story.Id, from, target, story.TeamId);
+        metrics.StoryMoved(story, from);
         var piId = await db.Features.Where(f => f.Id == story.FeatureId).Select(f => f.ProgramIncrementId).SingleAsync(ct);
         return StoryResponse.From(story, piId);
     }

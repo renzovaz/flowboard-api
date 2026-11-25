@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using FlowBoard.Api.Infrastructure.Database;
 using FlowBoard.Api.Infrastructure.ErrorHandling;
 using FlowBoard.Api.Infrastructure.HealthChecks;
+using FlowBoard.Api.Infrastructure.Observability;
 using FlowBoard.Api.Services;
 
 namespace FlowBoard.Api.Infrastructure;
@@ -12,6 +13,7 @@ public static partial class ServiceRegistration
     public static IServiceCollection AddFlowBoard(this IServiceCollection services)
     {
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<FlowMetrics>();
         services.AddFlowBoardDatabase();
         services.AddFlowBoardProblemDetails();
         services.AddFlowBoardHealthChecks();
