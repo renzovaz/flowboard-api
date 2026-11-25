@@ -25,7 +25,7 @@ RUN dotnet publish src/FlowBoard.Api/FlowBoard.Api.csproj -c Release --no-restor
     -p:Version=${VERSION} -p:UseAppHost=false -o /app/publish
 
 # ---------- Estágio 2: runtime ----------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine@sha256:21c3f9798416cba4c0576a947c286231cb71ea2884896cb968253f5c9668f930 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-alpine@sha256:d39b72ad1534fa0faf52b488bffb0762df7ba269d120f0338713d4dda2a41bf5 AS runtime
 
 ARG VERSION=0.0.0-local
 ARG REVISION=unknown
