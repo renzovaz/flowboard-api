@@ -56,17 +56,30 @@ jobs:
       - name: Build (analyzers, avisos = erro)
         run: dotnet build FlowBoard.slnx -c "$CONFIGURATION" --no-restore
 
-      - name: Testes unitários
+      # Gate de cobertura: mínimo de 80% de linhas no namespace Domain (regras de negócio).
+      - name: Testes unitários + gate de cobertura do Domain
         run: >
           dotnet test tests/FlowBoard.UnitTests -c "$CONFIGURATION" --no-build
           --logger GitHubActions --logger "trx;LogFileName=unit.trx"
           --results-directory TestResults
+          /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura
+          "/p:CoverletOutput=$GITHUB_WORKSPACE/TestResults/coverage/unit/"
+          "/p:Include=[FlowBoard.Api]FlowBoard.Api.Domain.*"
+          /p:Threshold=80 /p:ThresholdType=line
 
       - name: Testes de integração
         run: >
           dotnet test tests/FlowBoard.IntegrationTests -c "$CONFIGURATION" --no-build
           --logger GitHubActions --logger "trx;LogFileName=integration.trx"
           --results-directory TestResults
+
+      - name: Relatório de cobertura no resumo da execução
+        if: always()
+        run: |
+          dotnet tool restore
+          dotnet reportgenerator "-reports:TestResults/**/*.cobertura.xml;TestResults/**/coverage.cobertura.xml" \
+            -targetdir:TestResults/coverage-report -reporttypes:"MarkdownSummaryGithub" || exit 0
+          cat TestResults/coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Upload dos resultados de teste
         if: always()
