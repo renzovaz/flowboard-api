@@ -46,6 +46,40 @@ internal sealed class Scenario(HttpClient client)
         return await IdOf(response);
     }
 
+    public async Task<int> CreateStoryAsync(int featureId, int? points = 3, int? teamId = null, int? iteration = 1,
+        string? criteria = "Dado um usuário, quando agir, então ocorre o resultado")
+    {
+        var response = await Client.PostJsonAsync($"/api/features/{featureId}/stories", new
+        {
+            title = "Story " + Guid.NewGuid().ToString("N")[..6],
+            acceptanceCriteria = criteria,
+            storyPoints = points,
+            teamId,
+            iteration,
+        });
+        return await IdOf(response);
+    }
+
+    public Task<HttpResponseMessage> MoveAsync(int storyId, string status) =>
+        Client.PatchJsonAsync($"/api/stories/{storyId}/status", new { status });
+
+    /// <summary>Cria uma Story que atende à DoR e a move até o status informado.</summary>
+    public async Task<int> CreateStoryInAsync(int featureId, int teamId, string status, int points = 1)
+    {
+        var id = await CreateStoryAsync(featureId, points, teamId);
+        foreach (var step in new[] { "Ready", "InProgress", "Review", "Done" })
+        {
+            var response = await MoveAsync(id, step);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            if (step == status)
+            {
+                break;
+            }
+        }
+
+        return id;
+    }
+
     public static async Task<int> IdOf(HttpResponseMessage response)
     {
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
