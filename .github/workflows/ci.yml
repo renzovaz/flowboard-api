@@ -39,6 +39,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2 # commit base do PR, usado pela guarda de migrations
 
       - name: Setup .NET (versão do global.json)
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -47,8 +49,23 @@ jobs:
           cache: true
           cache-dependency-path: "**/packages.lock.json"
 
+      # NuGet Audit roda no restore: vulnerabilidade moderada/alta/crítica quebra o build.
       - name: Restore (locked mode + NuGet Audit)
         run: dotnet restore FlowBoard.slnx --locked-mode
+
+      - name: Relatório de dependências vulneráveis (informativo)
+        run: |
+          {
+            echo "### NuGet Audit — dependências vulneráveis (diretas e transitivas)"
+            echo '```'
+            dotnet list FlowBoard.slnx package --vulnerable --include-transitive
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # ADR-008: migrations novas precisam ser aditivas (exceto com o rótulo breaking-migration).
+      - name: Guarda de migrations destrutivas
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'breaking-migration')
+        run: scripts/ci/check-migrations.sh HEAD^1 HEAD
 
       - name: Verificar formatação (.editorconfig)
         run: dotnet format FlowBoard.slnx --verify-no-changes --no-restore
@@ -101,3 +118,26 @@ jobs:
           name: flowboard-api-${{ github.sha }}
           path: publish/
           retention-days: 30
+
+  # Verificação de segredos com Gitleaks.
+  # pull_request/push: escaneia os commits do PR/push; schedule/workflow_dispatch: TODO o histórico.
+  # fetch-depth: 0 é obrigatório para que o histórico (e o commit base) exista localmente.
+  secret-scan:
+    name: secret-scan
+    if: ${{ !inputs.is-release }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Checkout (histórico completo)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false" # sem permissão de escrita em PRs (menor privilégio)
