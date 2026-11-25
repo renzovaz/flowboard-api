@@ -180,14 +180,18 @@ jobs:
           docker run -d --name smoke-db --network smoke \
             -e POSTGRES_DB=flowboard -e POSTGRES_USER=flowboard -e POSTGRES_PASSWORD=ci-only-ephemeral \
             postgres:17-alpine
+          # Aguarda o PostgreSQL aceitar conexões (equivalente ao depends_on: service_healthy do Compose).
+          timeout 60 bash -c 'until docker exec smoke-db pg_isready -U flowboard -d flowboard >/dev/null 2>&1; do sleep 1; done'
           docker run -d --name smoke-api --network smoke -p 8080:8080 \
             -e "ConnectionStrings__Default=Host=smoke-db;Database=flowboard;Username=flowboard;Password=ci-only-ephemeral" \
             -e Database__ApplyMigrationsOnStartup=true \
             "$IMAGE"
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:8080/health/ready >/dev/null; then break; fi
-            sleep 2
-          done
+          if ! timeout 90 bash -c 'until curl -sf http://localhost:8080/health/ready >/dev/null; do sleep 2; done'; then
+            echo "::error::A API não ficou pronta em 90 s"
+            docker ps -a
+            docker logs smoke-api | tail -50
+            exit 1
+          fi
           curl -sf http://localhost:8080/health | tee /dev/stderr | jq -e '.status == "Healthy"'
           test "$(docker exec smoke-api id -u)" = "1654" # executa como usuário não-root
           docker logs smoke-api | tail -5
@@ -202,7 +206,7 @@ jobs:
           exit-code: "0"
 
       - name: Enviar SARIF para a aba Security
-        if: always()
+        if: always() && hashFiles('trivy-image.sarif') != ''
         uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           sarif_file: trivy-image.sarif
