@@ -33,6 +33,19 @@ internal sealed class Scenario(HttpClient client)
         return await IdOf(response);
     }
 
+    public async Task<int> CreateFeatureAsync(int piId, int bv = 8, int tc = 5, int rr = 3, int jobSize = 5, string title = "Feature")
+    {
+        var response = await Client.PostJsonAsync($"/api/program-increments/{piId}/features", new
+        {
+            title,
+            businessValue = bv,
+            timeCriticality = tc,
+            riskReduction = rr,
+            jobSize,
+        });
+        return await IdOf(response);
+    }
+
     public static async Task<int> IdOf(HttpResponseMessage response)
     {
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
